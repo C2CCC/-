@@ -1,5 +1,5 @@
 <?php
-//ini_set("display_errors", "Off");
+ini_set("display_errors", "Off");
 require_once 'connectVars.php';
 session_start();
 $con = mysql_connect(DB_HOST, DB_USER, DB_PASSWORD);
