@@ -35,14 +35,14 @@ switch ($uri) {
 	case 'manage' :
 		$data = getBookedTickets($data, $con, $usr);
 		break;
-	case 'deptMgr':
+	case 'deptMgr' :
 		$data = deptMgr($data, $con, $usr);
 		break;
-	case 'perDog':
+	case 'perDog' :
 		$data = perDog($data, $con, $usr);
 		break;
 	default :
-		$data['err']=TRUE;
+		$data['err'] = TRUE;
 		$data = arr_foreach($data);
 		$data = json_encode($data);
 		break;
@@ -104,6 +104,14 @@ function getBookedTickets($data, $con, $usr) {
 }
 
 function deptMgr($data, $con, $usr) {
+	//检查权限
+	$checkRow = mysql_fetch_array(mysql_query("select manager from user where username='$usr'", $con));
+	if ($checkRow['manager'] == '0') {
+		$data['err'] = TRUE;
+		$data = arr_foreach($data);
+		$data = json_encode($data);
+		return $data;
+	}
 	$result = mysql_query("select distinct bookedtickets.username,tickets.*,bookedtickets.amount from user,tickets,bookedtickets where user.department in (select user.department from user where user.username='$usr') and bookedtickets.tno=tickets.tno and user.username = bookedtickets.username and bookedtickets.username!='$usr' order by bookedtickets.username,bookedtickets.tno asc", $con);
 	$tickets = array();
 	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
@@ -128,7 +136,7 @@ function deptMgr($data, $con, $usr) {
 		$statisticsContent .= '<tr><td>' . $val['tno'] . '</td><td>' . $val['department'] . '</td><td>' . $val['sum(bookedtickets.amount)'] . '</td></tr>';
 	}
 	$moduleContent1 = substr_replace($moduleContent1, $statisticsContent, strpos($moduleContent1, '</tbody>'), 0);
-	$module = array('module' => array(0 => array('moduleClass' => 'bookTickets', 'moduleTitle' => '管理车票', 'moduleContent' => 'toBeReplaced0'),1 => array('moduleClass' => 'ticketStatistics', 'moduleTitle' => '车票统计', 'moduleContent' => 'toBeReplaced1')));
+	$module = array('module' => array(0 => array('moduleClass' => 'bookTickets', 'moduleTitle' => '管理车票', 'moduleContent' => 'toBeReplaced0'), 1 => array('moduleClass' => 'ticketStatistics', 'moduleTitle' => '车票统计', 'moduleContent' => 'toBeReplaced1')));
 	$data = array_merge($data, $module);
 	$data = arr_foreach($data);
 	$data = json_encode($data);
@@ -137,7 +145,15 @@ function deptMgr($data, $con, $usr) {
 	return $data;
 }
 
-function perDog($data, $con, $usr){
+function perDog($data, $con, $usr) {
+	//检查权限
+	$checkRow = mysql_fetch_array(mysql_query("select chief from user where username='$usr'", $con));
+	if ($checkRow['chief'] == '0') {
+		$data['err'] = TRUE;
+		$data = arr_foreach($data);
+		$data = json_encode($data);
+		return $data;
+	}
 	$result = mysql_query("select * from tickets order by tno asc", $con);
 	$tickets = array();
 	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
@@ -174,7 +190,7 @@ function perDog($data, $con, $usr){
 		$menbersContent .= '<tr><td>' . $val['username'] . '</td><td>' . $val['department'] . '</td><td>' . $val['manager'] . '</td><td><button class=\'menbersEdit\' data-usr=\'' . $val['username'] . '\'>编辑</button><button class=\'menbersDel\' data-usr=\'' . $val['username'] . '\'>删除</button></td></tr>';
 	}
 	$moduleContent2 = substr_replace($moduleContent2, $menbersContent, strpos($moduleContent2, '</tbody>'), 0);
-	$module = array('module' => array(0 => array('moduleClass' => 'ticketsMng', 'moduleTitle' => '车票管理', 'moduleContent' => 'toBeReplaced0'),1 => array('moduleClass' => 'ticketStatisticsAll', 'moduleTitle' => '车票统计', 'moduleContent' => 'toBeReplaced1'),2 => array('moduleClass' => 'menbersMng', 'moduleTitle' => '人员管理', 'moduleContent' => 'toBeReplaced2')));
+	$module = array('module' => array(0 => array('moduleClass' => 'ticketsMng', 'moduleTitle' => '车票管理', 'moduleContent' => 'toBeReplaced0'), 1 => array('moduleClass' => 'ticketStatisticsAll', 'moduleTitle' => '车票统计', 'moduleContent' => 'toBeReplaced1'), 2 => array('moduleClass' => 'menbersMng', 'moduleTitle' => '人员管理', 'moduleContent' => 'toBeReplaced2')));
 	$data = array_merge($data, $module);
 	$data = arr_foreach($data);
 	$data = json_encode($data);
