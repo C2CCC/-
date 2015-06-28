@@ -41,6 +41,10 @@ switch ($uri) {
 	case 'perDog' :
 		$data = perDog($data, $con, $usr);
 		break;
+	case 'search':
+		$searchData = $_POST['extData'];
+		$data = searchFunc($data, $searchData, $con);
+		break;
 	default :
 		$data['err'] = TRUE;
 		$data = arr_foreach($data);
@@ -61,6 +65,40 @@ function arr_foreach($arr) {
 	return $arr;
 }
 
+function searchFunc($data,$searchData,$con){
+	$result = mysql_query("select * from tickets where tno like '%$searchData%' or fromto like '%$searchData%' order by tno desc", $con);
+	$tickets = array();
+	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
+		$tickets[] = $row;
+	}
+	$moduleContent0 = file_get_contents('html/tickets-available.html');
+	$ticketsContent = '';
+	$tickets = arr_foreach($tickets);
+	foreach ($tickets as $key => $val) {
+		$ticketsContent .= '<tr data-changed=\'' . $val['changed'] . '\'><td>' . $val['fromto'] . '</td><td>' . $val['time'] . '</td><td>' . $val['price'] . '</td><td>' . $val['rest'] . '</td><td>' . $val['deadline'] . '</td><td><button class=\'book\' data-tno=\'' . $val['tno'] . '\'>预订</button></td></tr>';
+	}
+	$moduleContent0 = substr_replace($moduleContent0, $ticketsContent, strpos($moduleContent0, '</tbody>'), 0);
+	$result = mysql_query("select username,department from user where username like '%$searchData%' or department like '%$searchData%' order by username asc,department asc", $con);
+	$menbers = array();
+	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
+		$menbers[] = $row;
+	}
+	$moduleContent1 = file_get_contents('html/search-menbers.html');
+	$menbersContent = '';
+	$menbers = arr_foreach($menbers);
+	foreach ($menbers as $key => $val) {
+		$menbersContent .= '<tr><td>' . $val['username'] . '</td><td>' . $val['department'] . '</td></tr>';
+	}
+	$moduleContent1 = substr_replace($moduleContent1, $menbersContent, strpos($moduleContent1, '</tbody>'), 0);
+	$module = array('module' => array(0 => array('moduleClass' => 'searchTickets', 'moduleTitle' => '车票', 'moduleContent' => 'toBeReplaced0'), 1 => array('moduleClass' => 'searchMenbers', 'moduleTitle' => '人员', 'moduleContent' => 'toBeReplaced1')));
+	$data = array_merge($data, $module);
+	$data = arr_foreach($data);
+	$data = json_encode($data);
+	$data = substr_replace($data, $moduleContent0, strpos($data, 'toBeReplaced0'), 13);
+	$data = substr_replace($data, $moduleContent1, strpos($data, 'toBeReplaced1'), 13);
+	return $data;
+}
+
 function getTickets($data, $con) {
 	$result = mysql_query("select * from tickets where overdue = 0", $con);
 	$tickets = array();
@@ -71,7 +109,7 @@ function getTickets($data, $con) {
 	$ticketsContent = '';
 	$tickets = arr_foreach($tickets);
 	foreach ($tickets as $key => $val) {
-		$ticketsContent .= '<tr data-changed=\'' . $val['changed'] . '\'><td>' . $val['fromto'] . '</td><td>' . $val['time'] . '</td><td>' . $val['price'] . '</td><td>' . $val['rest'] . '</td><td>' . $val['deadline'] . '</td><td><button data-tno=\'' . $val['tno'] . '\'>预订</button></td></tr>';
+		$ticketsContent .= '<tr data-changed=\'' . $val['changed'] . '\'><td>' . $val['fromto'] . '</td><td>' . $val['time'] . '</td><td>' . $val['price'] . '</td><td>' . $val['rest'] . '</td><td>' . $val['deadline'] . '</td><td><button class=\'book\' data-tno=\'' . $val['tno'] . '\'>预订</button></td></tr>';
 	}
 	$moduleContent = substr_replace($moduleContent, $ticketsContent, strpos($moduleContent, '</tbody>'), 0);
 	$module = array('module' => array(0 => array('moduleClass' => 'bookTickets', 'moduleTitle' => '预订车票', 'moduleContent' => 'toBeReplaced')));
@@ -154,7 +192,7 @@ function perDog($data, $con, $usr) {
 		$data = json_encode($data);
 		return $data;
 	}
-	$result = mysql_query("select * from tickets order by tno asc", $con);
+	$result = mysql_query("select * from tickets order by tno desc", $con);
 	$tickets = array();
 	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
 		$tickets[] = $row;

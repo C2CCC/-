@@ -39,14 +39,205 @@ $(document).ready(function() {
 			});
 		}
 	});
+	//搜索
+	$('#search').on('keydown', function(e) {
+		if (e.keyCode == 13) {
+			ajaxLoad('search');
+			setState('search');
+		}
+	});
+	//******新增元素事件绑定******
+	//修改密码确认按钮
+	$('#container').on('click', '.chgPwd', function() {
+		var pwdInfo = '<input type="password" class="oldPwd" placeholder="旧密码" /><input type="password" class="newPwd" placeholder="新密码" /><input type="password" class="confirmNewPwd" placeholder="确认新密码" /><button class="confirmChgPwd">确定</button>';
+		maskPop(pwdInfo);
+		$('#container').find('.confirmChgPwd').on('click', function() {
+			var pinfo = {
+				'oldPwd': $.md5($('.oldPwd').val()),
+				'newPwd': $.md5($('.newPwd').val()),
+				'confirmNewPwd': $.md5($('.confirmNewPwd').val())
+			};
+			if (pinfo.newPwd != pinfo.confirmNewPwd) {
+				popWarning('两次新密码输入不一致！');
+				return;
+			}
+			perDogMng(pinfo, 'chgPwd', 'self', '修改密码成功！', '修改失败！');
+			ajaxLoad('index');
+		});
+	});
+	//预订车票按钮
+	$('#container').on('click', '.book', function() {
+		var tno = $(this).attr('data-tno');
+		mngTickets(tno, 'book', 'self', '成功预订一张车票！', '预订失败!');
+		ajaxLoad('index');
+		//		window.location.reload();
+	});
+	//退订车票
+	$('#container').on('click', '.refund', function() {
+		var tno = $(this).attr('data-tno');
+		mngTickets(tno, 'refund', 'self', '成功退订一张车票！', '退订失败!');
+		ajaxLoad('manage');
+	});
+	//转让车票
+	$('#container').on('mouseover', '.transfer', function() {
+		var inputTop = $(this).position().top - $('#transfer-target').height() - 5;
+		$('#transfer-target').css('top', inputTop);
+		$('#transfer-target').fadeIn();
+		$('#transfer-target').focus();
+	});
+	$('#container').on('mouseleave', '.transfer', function() {
+		$('#transfer-target').fadeOut();
+	});
+	$('#container').on('click', '.transfer', function() {
+		var tno = $(this).attr('data-tno');
+		var targetUsr = $('#transfer-target').val();
+		mngTickets(tno, 'transfer', targetUsr, '成功转让一张车票！', '转让失败!用户名不存在或数据出错');
+		ajaxLoad('manage');
+	});
+	//分区管理员
+	$('#container').on('click', '.mgrRefund', function() {
+		var tno = $(this).attr('data-tno');
+		var targetUsr = $(this).attr('data-usr');
+		mngTickets(tno, 'refund', targetUsr, '成功退订一张车票！', '退订失败!');
+		ajaxLoad('deptMgr');
+	});
+	$('#container').on('click', '.mgrBook', function() {
+		var usrList = mngTickets(null, 'getUsrList', 'self', null, null);
+		var usrSelectList = '';
+		$.each(usrList, function(key, value) {
+			usrSelectList += '<option value="' + value.username + '">' + value.username + '</option>';
+		});
+		var mgrBook = '<select class="mgrBookUsr"><option value="">用户名</option>' + usrSelectList + '</select><input class="mgrBookTno" type="text" placeholder="车票编号" /><button class="mgrBookTicket">预订</button>';
+		maskPop(mgrBook);
+		$('#container').find('.mgrBookTicket').on('click', function() {
+			var targetUsr = $('.mgrBookUsr option:selected').val();
+			var tno = $('.mgrBookTno').val();
+			mngTickets(tno, 'book', targetUsr, '成功预订一张车票！', '预订失败!');
+			ajaxLoad('deptMgr');
+		});
+	});
+	//权限狗
+	$('#container').on('click', '.addTicket', function() {
+		var ticketInfo = '<input type="text" class="newFromto" placeholder="始发地-目的地" /><input type="datetime-local" class="newTime" placeholder="时间" /><input type="number" class="newPrice" placeholder="价格" /><input type="number" class="newRest" placeholder="剩余票数" /><input type="datetime-local" class="newDeadline" placeholder="截止日期" /><button class="addNewTicket">发布</button>';
+		maskPop(ticketInfo);
+		$('#container').find('.addNewTicket').on('click', function() {
+			var nti = new Array();
+			nti[0] = getTnoTime();
+			nti[1] = $('.newFromto').val();
+			nti[2] = $('.newTime').val().replace(/\//g, '-').replace('T', ' ') + ':00';
+			nti[3] = $('.newPrice').val();
+			nti[4] = $('.newRest').val();
+			nti[5] = $('.newDeadline').val().replace(/\//g, '-').replace('T', ' ') + ':00';
+			var newTicketInfo = {
+				'newTno': nti[0].toString(),
+				'newFromto': nti[1].toString(),
+				'newTime': nti[2].toString(),
+				'newPrice': nti[3].toString(),
+				'newRest': nti[4].toString(),
+				'newDeadline': nti[5].toString()
+			};
+			perDogMng(newTicketInfo, 'addTicket', 'new', '成功发布一张车票！', '发布失败！');
+			ajaxLoad('perDog');
+		});
+	});
+	$('#container').on('click', '.ticketsEdit', function() {
+		var oti = {
+			'oldTno': $(this).attr('data-tno'),
+			'oldFromto': $(this).parents('tr').children().eq(1).html(),
+			'oldTime': $(this).parents('tr').children().eq(2).html().replace(/-/g, '/').substring(0, 16),
+			'oldPrice': $(this).parents('tr').children().eq(3).html(),
+			'oldRest': $(this).parents('tr').children().eq(4).html(),
+			'oldDeadline': $(this).parents('tr').children().eq(5).html().replace(/-/g, '/').substring(0, 16)
+		};
+		var ticketInfo = '<input type="text" class="newFromto" placeholder="始发地-目的地" value="' + oti.oldFromto + '" /><input type="text" class="newTime" placeholder="时间" value="' + oti.oldTime + '" /><input type="number" class="newPrice" placeholder="价格" value="' + oti.oldPrice + '" /><input type="number" class="newRest" placeholder="剩余票数" value="' + oti.oldRest + '" /><input type="text" class="newDeadline" placeholder="截止日期" value="' + oti.oldDeadline + '" /><button class="confirmEditTicket">确定</button>';
+		maskPop(ticketInfo);
+		$('#container').find('.confirmEditTicket').on('click', function() {
+			var nti = new Array();
+			nti[0] = oti.oldTno;
+			nti[1] = $('.newFromto').val();
+			nti[2] = $('.newTime').val().replace(/\//g, '-').replace('T', ' ') + ':00';
+			nti[3] = $('.newPrice').val();
+			nti[4] = $('.newRest').val();
+			nti[5] = $('.newDeadline').val().replace(/\//g, '-').replace('T', ' ') + ':00';
+			var newTicketInfo = {
+				'newTno': nti[0].toString(),
+				'newFromto': nti[1].toString(),
+				'newTime': nti[2].toString(),
+				'newPrice': nti[3].toString(),
+				'newRest': nti[4].toString(),
+				'newDeadline': nti[5].toString()
+			};
+			perDogMng(newTicketInfo, 'editTicket', 'new', '成功修改一张车票！', '修改失败！');
+			ajaxLoad('perDog');
+		});
+	});
+	$('#container').on('click', '.ticketsDel', function() {
+		var delTno = $(this).attr('data-tno');
+		if (confirm('确认删除车票编号为' + delTno + '的车票？')) {
+			perDogMng(delTno, 'delTicket', 'new', '成功删除一张车票！', '删除失败！');
+			ajaxLoad('perDog');
+		}
+	});
+	$('#container').on('click', '.addMenber', function() {
+		var menberInfo = '<input type="text" class="newUsername" placeholder="用户名" /><input type="text" class="newPassword" placeholder="密码" /><input type="text" class="newDepartment" placeholder="学院" /><select class="newManager"><option value="0">非管理员</option><option value="1">管理员</option></select><button class="addNewMenber">新增</button>';
+		maskPop(menberInfo);
+		$('#container').find('.addNewMenber').on('click', function() {
+			var nmi = new Array();
+			nmi[0] = $('.newUsername').val();
+			nmi[1] = $.md5($('.newPassword').val());
+			nmi[2] = $('.newDepartment').val();
+			nmi[3] = $('.newManager option:selected').val();
+			var newMenberInfo = {
+				'newUsername': nmi[0],
+				'newPassword': nmi[1],
+				'newDepartment': nmi[2],
+				'newManager': nmi[3],
+			};
+			perDogMng(newMenberInfo, 'addMenber', 'new', '成功新增一个人员！', '新增失败！');
+			ajaxLoad('perDog');
+		});
+	});
+	$('#container').on('click', '.menbersEdit', function() {
+		var omi = {
+			'oldUsername': $(this).attr('data-usr'),
+			'oldDepartment': $(this).parents('tr').children().eq(1).html(),
+			'oldManager': $(this).parents('tr').children().eq(2).html()
+		};
+		var menberInfo = '<input type="text" class="newUsername" placeholder="用户名" value="' + omi.oldUsername + '" /><input type="text" class="newPassword" placeholder="密码" /><input type="text" class="newDepartment" placeholder="学院" value="' + omi.oldDepartment + '" /><select class="newManager"><option value="0">非管理员</option><option value="1">管理员</option></select><button class="confirmEditMenber">确定</button>';
+		maskPop(menberInfo);
+		$('#container').find('.confirmEditMenber').on('click', function() {
+			var nmi = new Array();
+			nmi[0] = $('.newUsername').val();
+			nmi[1] = $.md5($('.newPassword').val());
+			nmi[2] = $('.newDepartment').val();
+			nmi[3] = $('.newManager option:selected').val();
+			var newMenberInfo = {
+				'newUsername': nmi[0],
+				'newPassword': nmi[1],
+				'newDepartment': nmi[2],
+				'newManager': nmi[3],
+			};
+			perDogMng(newMenberInfo, 'addMenber', 'new', '成功修改一个人员！', '修改失败！');
+			ajaxLoad('perDog');
+		});
+	});
+	$('#container').on('click', '.menbersDel', function() {
+		var delUsername = $(this).attr('data-usr');
+		if (confirm('确认删除用户名为' + delUsername + '的用户？')) {
+			perDogMng(delUsername, 'delMenber', 'new', '成功删除一个用户！', '删除失败！');
+			ajaxLoad('perDog');
+		}
+	});
 });
 
 function ajaxLoad(uri) {
+	var extraData = $('#search').val();
 	$.ajax({
 		type: "post",
 		url: "../action/ajax.php",
 		data: {
-			'uri': uri
+			'uri': uri,
+			'extData': extraData
 		},
 		async: false,
 		success: function(data) {
@@ -96,195 +287,20 @@ function activateEvent(uri) {
 		case 'index-login':
 			var chgPwd = '<button class="chgPwd">修改密码</button>';
 			$('#container').append(chgPwd);
-			$('#container').find('.chgPwd').on('click', function() {
-				var pwdInfo = '<input type="password" class="oldPwd" placeholder="旧密码" /><input type="password" class="newPwd" placeholder="新密码" /><input type="password" class="confirmNewPwd" placeholder="确认新密码" /><button class="confirmChgPwd">确定</button>';
-				maskPop(pwdInfo);
-				$('#container').find('.confirmChgPwd').on('click', function() {
-					var pinfo = {
-						'oldPwd': $.md5($('.oldPwd').val()),
-						'newPwd': $.md5($('.newPwd').val()),
-						'confirmNewPwd': $.md5($('.confirmNewPwd').val())
-					};
-					if (pinfo.newPwd != pinfo.confirmNewPwd) {
-						popWarning('两次新密码输入不一致！');
-						return;
-					}
-					perDogMng(pinfo, 'chgPwd', 'self', '修改密码成功！', '修改失败！');
-					ajaxLoad('index');
-				});
-			});
-			//预订车票按钮
-			$('#container').find('.tickets-available button').on('click', function() {
-				var tno = $(this).attr('data-tno');
-				mngTickets(tno, 'book', 'self', '成功预订一张车票！', '预订失败!');
-				ajaxLoad('index');
-			});
 			break;
 		case 'manage':
-			$('#container').find('.refund').on('click', function() {
-				var tno = $(this).attr('data-tno');
-				mngTickets(tno, 'refund', 'self', '成功退订一张车票！', '退订失败!');
-				ajaxLoad('manage');
-			});
 			var transTarget = '<input id="transfer-target" type="text" placeholder="要转让的用户名" />';
 			$('#container').append(transTarget);
-			$('#container').find('.transfer').on('mouseover', function() {
-				var inputTop = $(this).position().top - $('#transfer-target').height() - 5;
-				$('#transfer-target').css('top', inputTop);
-				$('#transfer-target').fadeIn();
-				$('#transfer-target').focus();
-			});
-			$('#container').find('.transfer').on('mouseleave', function() {
-				$('#transfer-target').fadeOut();
-			});
-			$('#container').find('.transfer').on('click', function() {
-				var tno = $(this).attr('data-tno');
-				var targetUsr = $('#transfer-target').val();
-				mngTickets(tno, 'transfer', targetUsr, '成功转让一张车票！', '转让失败!用户名不存在或数据出错');
-				ajaxLoad('manage');
-			});
 			break;
 		case 'deptMgr':
 			var mgrBook = '<button class="mgrBook">预订车票</button>';
 			$('#container').append(mgrBook);
-			$('#container').find('.mgrRefund').on('click', function() {
-				var tno = $(this).attr('data-tno');
-				var targetUsr = $(this).attr('data-usr');
-				mngTickets(tno, 'refund', targetUsr, '成功退订一张车票！', '退订失败!');
-				ajaxLoad('deptMgr');
-			});
-			$('#container').find('.mgrBook').on('click', function() {
-				var usrList = mngTickets(null, 'getUsrList', 'self', null, null);
-				var usrSelectList = '';
-				$.each(usrList, function(key, value) {
-					usrSelectList += '<option value="' + value.username + '">' + value.username + '</option>';
-				});
-				var mgrBook = '<select class="mgrBookUsr"><option value="">用户名</option>' + usrSelectList + '</select><input class="mgrBookTno" type="text" placeholder="车票编号" /><button class="mgrBookTicket">预订</button>';
-				maskPop(mgrBook);
-				$('#container').find('.mgrBookTicket').on('click', function() {
-					var targetUsr = $('.mgrBookUsr option:selected').val();
-					var tno = $('.mgrBookTno').val();
-					mngTickets(tno, 'book', targetUsr, '成功预订一张车票！', '预订失败!');
-					ajaxLoad('deptMgr');
-				});
-			});
 			break;
 		case 'perDog':
 			$('.perDog-ticket-statistics').rowspan(0);
 			var addTicket = '<button class="addTicket">发布车票</button>';
 			var addMenber = '<button class="addMenber">新增人员</button>';
 			$('#container').append(addTicket).append(addMenber);
-			$('#container').find('.addTicket').on('click', function() {
-				var ticketInfo = '<input type="text" class="newFromto" placeholder="始发地-目的地" /><input type="datetime-local" class="newTime" placeholder="时间" /><input type="number" class="newPrice" placeholder="价格" /><input type="number" class="newRest" placeholder="剩余票数" /><input type="datetime-local" class="newDeadline" placeholder="截止日期" /><button class="addNewTicket">发布</button>';
-				maskPop(ticketInfo);
-				$('#container').find('.addNewTicket').on('click', function() {
-					var nti = new Array();
-					nti[0] = getTnoTime();
-					nti[1] = $('.newFromto').val();
-					nti[2] = $('.newTime').val().replace(/\//g, '-').replace('T', ' ') + ':00';
-					nti[3] = $('.newPrice').val();
-					nti[4] = $('.newRest').val();
-					nti[5] = $('.newDeadline').val().replace(/\//g, '-').replace('T', ' ') + ':00';
-					var newTicketInfo = {
-						'newTno': nti[0].toString(),
-						'newFromto': nti[1].toString(),
-						'newTime': nti[2].toString(),
-						'newPrice': nti[3].toString(),
-						'newRest': nti[4].toString(),
-						'newDeadline': nti[5].toString()
-					};
-					perDogMng(newTicketInfo, 'addTicket', 'new', '成功发布一张车票！', '发布失败！');
-					ajaxLoad('perDog');
-				});
-			});
-			$('#container').find('.ticketsEdit').on('click', function() {
-				var oti = {
-					'oldTno': $(this).attr('data-tno'),
-					'oldFromto': $(this).parents('tr').children().eq(1).html(),
-					'oldTime': $(this).parents('tr').children().eq(2).html().replace(/-/g, '/').substring(0, 16),
-					'oldPrice': $(this).parents('tr').children().eq(3).html(),
-					'oldRest': $(this).parents('tr').children().eq(4).html(),
-					'oldDeadline': $(this).parents('tr').children().eq(5).html().replace(/-/g, '/').substring(0, 16)
-				};
-				var ticketInfo = '<input type="text" class="newFromto" placeholder="始发地-目的地" value="' + oti.oldFromto + '" /><input type="datetime-local" class="newTime" placeholder="时间" value="' + oti.oldTime + '" /><input type="number" class="newPrice" placeholder="价格" value="' + oti.oldPrice + '" /><input type="number" class="newRest" placeholder="剩余票数" value="' + oti.oldRest + '" /><input type="datetime-local" class="newDeadline" placeholder="截止日期" value="' + oti.oldDeadline + '" /><button class="confirmEditTicket">确定</button>';
-				maskPop(ticketInfo);
-				$('#container').find('.confirmEditTicket').on('click', function() {
-					var nti = new Array();
-					nti[0] = oti.oldTno;
-					nti[1] = $('.newFromto').val();
-					nti[2] = $('.newTime').val().replace(/\//g, '-').replace('T', ' ') + ':00';
-					nti[3] = $('.newPrice').val();
-					nti[4] = $('.newRest').val();
-					nti[5] = $('.newDeadline').val().replace(/\//g, '-').replace('T', ' ') + ':00';
-					var newTicketInfo = {
-						'newTno': nti[0].toString(),
-						'newFromto': nti[1].toString(),
-						'newTime': nti[2].toString(),
-						'newPrice': nti[3].toString(),
-						'newRest': nti[4].toString(),
-						'newDeadline': nti[5].toString()
-					};
-					perDogMng(newTicketInfo, 'editTicket', 'new', '成功修改一张车票！', '修改失败！');
-					ajaxLoad('perDog');
-				});
-			});
-			$('#container').find('.ticketsDel').on('click', function() {
-				var delTno = $(this).attr('data-tno');
-				if (confirm('确认删除车票编号为' + delTno + '的车票？')) {
-					perDogMng(delTno, 'delTicket', 'new', '成功删除一张车票！', '删除失败！');
-					ajaxLoad('perDog');
-				}
-			});
-			$('#container').find('.addMenber').on('click', function() {
-				var menberInfo = '<input type="text" class="newUsername" placeholder="用户名" /><input type="text" class="newPassword" placeholder="密码" /><input type="text" class="newDepartment" placeholder="学院" /><select class="newManager"><option value="0">非管理员</option><option value="1">管理员</option></select><button class="addNewMenber">新增</button>';
-				maskPop(menberInfo);
-				$('#container').find('.addNewMenber').on('click', function() {
-					var nmi = new Array();
-					nmi[0] = $('.newUsername').val();
-					nmi[1] = $.md5($('.newPassword').val());
-					nmi[2] = $('.newDepartment').val();
-					nmi[3] = $('.newManager option:selected').val();
-					var newMenberInfo = {
-						'newUsername': nmi[0],
-						'newPassword': nmi[1],
-						'newDepartment': nmi[2],
-						'newManager': nmi[3],
-					};
-					perDogMng(newMenberInfo, 'addMenber', 'new', '成功新增一个人员！', '新增失败！');
-					ajaxLoad('perDog');
-				});
-			});
-			$('#container').find('.menbersEdit').on('click', function() {
-				var omi = {
-					'oldUsername': $(this).attr('data-usr'),
-					'oldDepartment': $(this).parents('tr').children().eq(1).html(),
-					'oldManager': $(this).parents('tr').children().eq(2).html()
-				};
-				var menberInfo = '<input type="text" class="newUsername" placeholder="用户名" value="' + omi.oldUsername + '" /><input type="text" class="newPassword" placeholder="密码" /><input type="text" class="newDepartment" placeholder="学院" value="' + omi.oldDepartment + '" /><select class="newManager"><option value="0">非管理员</option><option value="1">管理员</option></select><button class="confirmEditMenber">确定</button>';
-				maskPop(menberInfo);
-				$('#container').find('.confirmEditMenber').on('click', function() {
-					var nmi = new Array();
-					nmi[0] = $('.newUsername').val();
-					nmi[1] = $.md5($('.newPassword').val());
-					nmi[2] = $('.newDepartment').val();
-					nmi[3] = $('.newManager option:selected').val();
-					var newMenberInfo = {
-						'newUsername': nmi[0],
-						'newPassword': nmi[1],
-						'newDepartment': nmi[2],
-						'newManager': nmi[3],
-					};
-					perDogMng(newMenberInfo, 'addMenber', 'new', '成功修改一个人员！', '修改失败！');
-					ajaxLoad('perDog');
-				});
-			});
-			$('#container').find('.menbersDel').on('click', function() {
-				var delUsername = $(this).attr('data-usr');
-				if (confirm('确认删除用户名为' + delUsername + '的用户？')) {
-					perDogMng(delUsername, 'delMenber', 'new', '成功删除一个用户！', '删除失败！');
-					ajaxLoad('perDog');
-				}
-			});
 			break;
 		default:
 			break;

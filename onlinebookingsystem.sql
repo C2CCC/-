@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- 主机: localhost
--- 生成日期: 2015 年 06 月 10 日 10:07
+-- 生成日期: 2015 年 06 月 28 日 04:24
 -- 服务器版本: 5.5.8
 -- PHP 版本: 5.3.3
 
@@ -25,6 +25,7 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 -- 表的结构 `bookedtickets`
 --
 
+DROP TABLE IF EXISTS `bookedtickets`;
 CREATE TABLE IF NOT EXISTS `bookedtickets` (
   `username` varchar(20) NOT NULL,
   `tno` varchar(20) NOT NULL,
@@ -38,11 +39,14 @@ CREATE TABLE IF NOT EXISTS `bookedtickets` (
 --
 
 INSERT INTO `bookedtickets` (`username`, `tno`, `amount`) VALUES
-('031302305', '20150604234200', 2),
-('031302305', '20150604234300', 4),
-('031302305', '20150610125403', 2),
+('031302305', '20150604234200', 4),
+('031302305', '20150604234300', 3),
+('031302305', '20150610125403', 3),
 ('031302305', '20150610125530', 3),
-('boss', '20150610125403', 3),
+('admin', '20150604234200', 8),
+('admin', '20150626232545', 1),
+('boss', '20150604234200', 3),
+('boss', '20150604234300', 1),
 ('jg', '20150604234200', 2),
 ('jg', '20150604234300', 7),
 ('jg', '20150610125403', 5),
@@ -51,7 +55,8 @@ INSERT INTO `bookedtickets` (`username`, `tno`, `amount`) VALUES
 ('jg1', '20150604234300', 3),
 ('jg1', '20150610125403', 1),
 ('jgxy', '20150604234200', 2),
-('sj', '20150610125403', 7),
+('sj', '20150604234200', 2),
+('sj', '20150610125403', 6),
 ('sj1', '20150604234200', 3),
 ('sj1', '20150610125530', 5),
 ('sjxy', '20150604234300', 5),
@@ -69,6 +74,7 @@ INSERT INTO `bookedtickets` (`username`, `tno`, `amount`) VALUES
 -- 表的结构 `tickets`
 --
 
+DROP TABLE IF EXISTS `tickets`;
 CREATE TABLE IF NOT EXISTS `tickets` (
   `tno` varchar(20) NOT NULL,
   `fromto` varchar(20) NOT NULL,
@@ -86,11 +92,12 @@ CREATE TABLE IF NOT EXISTS `tickets` (
 --
 
 INSERT INTO `tickets` (`tno`, `fromto`, `time`, `price`, `rest`, `deadline`, `overdue`, `changed`) VALUES
-('20150604234200', '福州-晋江', '2015-06-16 15:00:00', 66, 115, '2015-06-27 14:00:00', 0, 0),
-('20150604234300', '福州-石狮', '2015-06-25 08:00:00', 66, 115, '2015-06-14 00:00:00', 0, 0),
-('20150609184327', 'abcddd', '2015-06-06 06:06:00', 2333, 666666, '2015-06-07 07:21:00', 0, 1),
-('20150610125403', '福州-厦门', '2015-06-27 14:00:00', 66, 102, '2015-06-13 00:00:00', 0, 0),
-('20150610125530', '福州-漳州', '2015-06-28 13:00:00', 66, 97, '2015-06-15 02:00:00', 0, 1);
+('20150604234200', '福州-晋江', '2015-08-01 15:00:00', 66, 100, '2015-07-30 14:00:00', 0, 0),
+('20150604234300', '福州-石狮', '2015-09-03 08:00:00', 66, 115, '2015-08-12 00:00:00', 0, 0),
+('20150610125403', '福州-厦门', '2015-09-02 14:00:00', 66, 105, '2015-07-14 00:00:00', 0, 0),
+('20150610125530', '福州-漳州', '2015-06-28 13:00:00', 66, 99, '2015-06-15 03:00:00', 1, 1),
+('20150626232545', '地球-火星', '2015-07-11 23:33:00', 66, 232, '2015-07-01 06:59:00', 0, 0),
+('20150628121941', '朝鲜-太阳', '2015-10-01 10:00:00', 66, 233, '2015-07-05 10:00:00', 0, 0);
 
 -- --------------------------------------------------------
 
@@ -98,6 +105,7 @@ INSERT INTO `tickets` (`tno`, `fromto`, `time`, `price`, `rest`, `deadline`, `ov
 -- 表的结构 `user`
 --
 
+DROP TABLE IF EXISTS `user`;
 CREATE TABLE IF NOT EXISTS `user` (
   `username` varchar(20) NOT NULL,
   `password` varchar(32) NOT NULL,
@@ -139,3 +147,14 @@ INSERT INTO `user` (`username`, `password`, `department`, `manager`, `chief`) VA
 ALTER TABLE `bookedtickets`
   ADD CONSTRAINT `bookedtickets_ibfk_1` FOREIGN KEY (`username`) REFERENCES `user` (`username`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `bookedtickets_ibfk_2` FOREIGN KEY (`tno`) REFERENCES `tickets` (`tno`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+DELIMITER $$
+--
+-- 事件
+--
+DROP EVENT `auto_overdue`$$
+CREATE DEFINER=`root`@`localhost` EVENT `auto_overdue` ON SCHEDULE EVERY 1 HOUR STARTS '2015-06-28 11:16:21' ON COMPLETION NOT PRESERVE ENABLE DO begin
+  update tickets set overdue=1 where deadline<=curdate();
+end$$
+
+DELIMITER ;
