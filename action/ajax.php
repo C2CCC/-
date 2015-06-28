@@ -41,7 +41,7 @@ switch ($uri) {
 	case 'perDog' :
 		$data = perDog($data, $con, $usr);
 		break;
-	case 'search':
+	case 'search' :
 		$searchData = $_POST['extData'];
 		$data = searchFunc($data, $searchData, $con);
 		break;
@@ -65,7 +65,7 @@ function arr_foreach($arr) {
 	return $arr;
 }
 
-function searchFunc($data,$searchData,$con){
+function searchFunc($data, $searchData, $con) {
 	$result = mysql_query("select * from tickets where tno like '%$searchData%' or fromto like '%$searchData%' order by tno desc", $con);
 	$tickets = array();
 	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
@@ -209,11 +209,21 @@ function perDog($data, $con, $usr) {
 	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
 		$statistics[] = $row;
 	}
+	$tnoSumRes = mysql_query("select bookedtickets.tno,user.department,sum(bookedtickets.amount) from bookedtickets,user where user.username=bookedtickets.username group by bookedtickets.tno desc", $con);
+	$tnoSum = array();
+	while ($row = mysql_fetch_array($tnoSumRes, MYSQL_ASSOC)) {
+		$tnoSum[] = $row;
+	}
 	$moduleContent1 = file_get_contents('html/statistics.html');
 	$statisticsContent = '';
 	$statistics = arr_foreach($statistics);
+	$tnoSum = arr_foreach($tnoSum);
+	$tnoI = 0;
 	foreach ($statistics as $key => $val) {
-		$statisticsContent .= '<tr><td>' . $val['tno'] . '</td><td>' . $val['department'] . '</td><td>' . $val['sum(bookedtickets.amount)'] . '</td></tr>';
+		$statisticsContent .= '<tr><td>' . $val['tno'] . '</td><td>' . $val['department'] . '</td><td>' . $val['sum(bookedtickets.amount)'] . '</td><td>' . $tnoSum[$tnoI]['sum(bookedtickets.amount)'] . '</td></tr>';
+		if ($statistics[$key + 1]['tno'] != $val['tno']) {
+			$tnoI += 1;
+		}
 	}
 	$moduleContent1 = substr_replace($moduleContent1, $statisticsContent, strpos($moduleContent1, '</tbody>'), 0);
 	$result = mysql_query("select * from user where chief=0 order by department asc,manager desc,username asc", $con);

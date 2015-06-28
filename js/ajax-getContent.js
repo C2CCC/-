@@ -297,7 +297,7 @@ function activateEvent(uri) {
 			$('#container').append(mgrBook);
 			break;
 		case 'perDog':
-			$('.perDog-ticket-statistics').rowspan(0);
+			$('.perDog-ticket-statistics').rowspan(0).rowspan(3);
 			var addTicket = '<button class="addTicket">发布车票</button>';
 			var addMenber = '<button class="addMenber">新增人员</button>';
 			$('#container').append(addTicket).append(addMenber);
