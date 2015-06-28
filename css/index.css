@@ -69,7 +69,8 @@ button:hover {
 	background: rgb(48, 113, 169);
 }
 /*------header------*/
-#header{
+
+#header {
 	position: relative;
 }
 #header h1 {
@@ -115,9 +116,9 @@ button:hover {
 .nav li a:hover {
 	color: rgb(255, 255, 255);
 }
-#search{
+#search {
 	position: absolute;
-	right:30px;
+	right: 30px;
 	top: 61px;
 }
 /*------container------*/
@@ -191,6 +192,9 @@ button:hover {
 }
 .tickets-available tr[data-changed="1"] {
 	background: rgb(248, 239, 148);
+}
+.tickets-available tr[data-overdue="1"] {
+	background: rgba(217, 83, 79, 0.8);
 }
 .tickets-available button {
 	margin-left: 10px;

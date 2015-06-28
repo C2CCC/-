@@ -100,7 +100,7 @@ function searchFunc($data, $searchData, $con) {
 }
 
 function getTickets($data, $con) {
-	$result = mysql_query("select * from tickets where overdue = 0", $con);
+	$result = mysql_query("select * from tickets where overdue = 0 order by tno desc", $con);
 	$tickets = array();
 	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
 		$tickets[] = $row;
@@ -121,7 +121,7 @@ function getTickets($data, $con) {
 }
 
 function getBookedTickets($data, $con, $usr) {
-	$result = mysql_query("select tickets.*,bookedtickets.amount from tickets,bookedtickets where bookedtickets.username='$usr' and bookedtickets.tno=tickets.tno and tickets.overdue=0", $con);
+	$result = mysql_query("select tickets.*,bookedtickets.amount from tickets,bookedtickets where bookedtickets.username='$usr' and bookedtickets.tno=tickets.tno and tickets.overdue=0 order by bookedtickets.tno desc", $con);
 	$tickets = array();
 	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
 		$tickets[] = $row;
@@ -150,7 +150,7 @@ function deptMgr($data, $con, $usr) {
 		$data = json_encode($data);
 		return $data;
 	}
-	$result = mysql_query("select distinct bookedtickets.username,tickets.*,bookedtickets.amount from user,tickets,bookedtickets where user.department in (select user.department from user where user.username='$usr') and bookedtickets.tno=tickets.tno and user.username = bookedtickets.username and bookedtickets.username!='$usr' order by bookedtickets.username,bookedtickets.tno asc", $con);
+	$result = mysql_query("select distinct bookedtickets.username,tickets.*,bookedtickets.amount from user,tickets,bookedtickets where user.department in (select user.department from user where user.username='$usr') and tickets.overdue=0 and bookedtickets.tno=tickets.tno and user.username = bookedtickets.username and bookedtickets.username!='$usr' order by bookedtickets.username,bookedtickets.tno desc", $con);
 	$tickets = array();
 	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
 		$tickets[] = $row;
@@ -171,7 +171,7 @@ function deptMgr($data, $con, $usr) {
 	$statisticsContent = '';
 	$statistics = arr_foreach($statistics);
 	foreach ($statistics as $key => $val) {
-		$statisticsContent .= '<tr><td>' . $val['tno'] . '</td><td>' . $val['department'] . '</td><td>' . $val['sum(bookedtickets.amount)'] . '</td></tr>';
+		$statisticsContent .= '<tr><td>' . $val['tno'] . '</td><td>' . $val['department'] . '</td><td>' . $val['sum(bookedtickets.amount)'] . '</td><td>' . $val['sum(bookedtickets.amount)'] . '</td></tr>';
 	}
 	$moduleContent1 = substr_replace($moduleContent1, $statisticsContent, strpos($moduleContent1, '</tbody>'), 0);
 	$module = array('module' => array(0 => array('moduleClass' => 'bookTickets', 'moduleTitle' => '管理车票', 'moduleContent' => 'toBeReplaced0'), 1 => array('moduleClass' => 'ticketStatistics', 'moduleTitle' => '车票统计', 'moduleContent' => 'toBeReplaced1')));
@@ -201,7 +201,7 @@ function perDog($data, $con, $usr) {
 	$ticketsContent = '';
 	$tickets = arr_foreach($tickets);
 	foreach ($tickets as $key => $val) {
-		$ticketsContent .= '<tr data-changed=\'' . $val['changed'] . '\'><td>' . $val['tno'] . '</td><td>' . $val['fromto'] . '</td><td>' . $val['time'] . '</td><td>' . $val['price'] . '</td><td>' . $val['rest'] . '</td><td>' . $val['deadline'] . '</td><td><button class=\'ticketsEdit\' data-tno=\'' . $val['tno'] . '\'>编辑</button><button class=\'ticketsDel\' data-tno=\'' . $val['tno'] . '\'>删除</button></td></tr>';
+		$ticketsContent .= '<tr data-overdue=\'' . $val['overdue'] . '\' data-changed=\'' . $val['changed'] . '\'><td>' . $val['tno'] . '</td><td>' . $val['fromto'] . '</td><td>' . $val['time'] . '</td><td>' . $val['price'] . '</td><td>' . $val['rest'] . '</td><td>' . $val['deadline'] . '</td><td><button class=\'ticketsEdit\' data-tno=\'' . $val['tno'] . '\'>编辑</button><button class=\'ticketsDel\' data-tno=\'' . $val['tno'] . '\'>删除</button></td></tr>';
 	}
 	$moduleContent0 = substr_replace($moduleContent0, $ticketsContent, strpos($moduleContent0, '</tbody>'), 0);
 	$result = mysql_query("select bookedtickets.tno,user.department,sum(bookedtickets.amount) from bookedtickets,user where user.username=bookedtickets.username group by bookedtickets.tno desc,user.department asc", $con);
