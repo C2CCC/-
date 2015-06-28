@@ -203,7 +203,7 @@ $(document).ready(function() {
 			'oldDepartment': $(this).parents('tr').children().eq(1).html(),
 			'oldManager': $(this).parents('tr').children().eq(2).html()
 		};
-		var menberInfo = '<input type="text" class="newUsername" placeholder="用户名" value="' + omi.oldUsername + '" /><input type="text" class="newPassword" placeholder="密码" /><input type="text" class="newDepartment" placeholder="学院" value="' + omi.oldDepartment + '" /><select class="newManager"><option value="0">非管理员</option><option value="1">管理员</option></select><button class="confirmEditMenber">确定</button>';
+		var menberInfo = '<input type="text" class="newUsername" placeholder="用户名" readonly="readonly" value="' + omi.oldUsername + '" /><input type="text" class="newPassword" placeholder="密码" /><input type="text" class="newDepartment" placeholder="学院" value="' + omi.oldDepartment + '" /><select class="newManager"><option value="0">非管理员</option><option value="1">管理员</option></select><button class="confirmEditMenber">确定</button>';
 		maskPop(menberInfo);
 		$('#container').find('.confirmEditMenber').on('click', function() {
 			var nmi = new Array();
